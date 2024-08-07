@@ -1,5 +1,9 @@
 name: Actions test
-on: [push]
+on:
+  push:
+    branches:
+      - 'staging'
+      - 'production'
 
 jobs:
 
