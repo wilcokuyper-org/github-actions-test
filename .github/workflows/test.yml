@@ -2,7 +2,26 @@ name: Actions test
 on: [push]
 
 jobs:
-  test:
+
+  ## Build image
+  build:
+    if: github.ref_name == 'staging' || github.ref_name == 'production'
     runs-on: arc-runner-set
     steps:
-      - run: echo "Hello World"
+      - run: echo "build"
+
+  ## Deploy staging
+  deploy-staging:
+    if: github.ref_name == 'staging'
+    runs-on: arc-runner-set
+    needs: [build]
+    steps:
+      - run: echo "deploy-staging"
+
+  ## Deploy production
+  deploy-production:
+    if: github.ref_name == 'production'
+    runs-on: arc-runner-set
+    needs: [build]
+    steps:
+      - run: echo "deploy-production"
