@@ -34,9 +34,16 @@ jobs:
 #          MATRIX_CONTEXT: ${{ toJson(matrix) }}
 #        run: echo "$MATRIX_CONTEXT"
 
+  ## Wait for docker to start
+  docker-init:
+    runs-on: arc-runner-set
+    steps:
+      - name: docker-init
+        run: until docker info 2>/dev/null; do sleep 1; done
   ## Build image
   build:
     if: github.ref_name == 'staging' || github.ref_name == 'production'
+    needs: [docker-init]
     runs-on: arc-runner-set
     steps:
       - name: meta
