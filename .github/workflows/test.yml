@@ -39,7 +39,7 @@ jobs:
     runs-on: arc-runner-set
     steps:
       - name: docker-init
-        run: timeout 60s sh -c 'until docker info > /dev/null 2>&1; do sleep 2; done'
+        run: until docker info > /dev/null 2>&1; do echo "Waiting for Docker..."; sleep 2; done
   ## Build image
   build:
     if: github.ref_name == 'staging' || github.ref_name == 'production'
