@@ -1,0 +1,8 @@
+name: Actions test
+on: [push]
+
+jobs:
+  test:
+    runs-on: arc-runner-set
+    steps:
+      - run: echo "Hello World"
