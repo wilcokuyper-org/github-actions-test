@@ -50,6 +50,7 @@ jobs:
       - name: Build and push commit SHA and latest tags
         uses: docker/build-push-action@v6
         with:
+          cache-from: type=registry,ref=${{ vars.DOCKER_DO_REGISTRY }}/${{github.event.repository.name }}:${{github.sha}}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
