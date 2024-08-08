@@ -36,7 +36,6 @@ jobs:
 
   ## Build image
   build:
-    needs: [docker-init]
     runs-on: arc-runner-set
     steps:
       ## Make sure docker is running
