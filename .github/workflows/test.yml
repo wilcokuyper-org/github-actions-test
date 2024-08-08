@@ -50,7 +50,9 @@ jobs:
       - name: Build and push commit SHA and latest tags
         uses: docker/build-push-action@v6
         with:
+          cache-from: type=registry,ref=${{ vars.DOCKER_DO_REGISTRY }}/${{github.event.repository.name }}:${{github.sha}}
           push: true
+          provenance: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
@@ -101,4 +103,5 @@ jobs:
       ## pull the image with current commit SHA for the current project
       ## tag the image as production
       ## push the production tag
+      ## deploy to kubernetes
       - run: echo "deploy-production"
