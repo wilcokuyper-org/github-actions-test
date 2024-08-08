@@ -47,11 +47,14 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
+          flavor: |
+            latest=true
+            prefix=
+            suffix=
           images: |
             ${{ vars.DOCKER_DO_REGISTRY }}/${{github.event.repository.name }}
           tags: |
-            type=sha
-            type=raw,latest
+            type=sha,format=long
       - env:
           META_DATA: ${{ toJson(steps.meta) }}
         run : echo "$META_DATA"
