@@ -48,7 +48,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            #{{ $DOCKER_DO_REGISTRY/github.event.repository.name }}
+            ${{ vars.DOCKER_DO_REGISTRY }}/${{github.event.repository.name }}
           tags: |
             type=sha
             type=raw,latest
@@ -82,6 +82,7 @@ jobs:
         with:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   ## Deploy staging
   deploy-staging:
