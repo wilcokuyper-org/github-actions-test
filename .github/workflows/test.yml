@@ -6,34 +6,6 @@ on:
       - 'production'
 
 jobs:
-#  dump_contexts_to_log:
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Dump GitHub context
-#        env:
-#          GITHUB_CONTEXT: ${{ toJson(github) }}
-#        run: echo "$GITHUB_CONTEXT"
-#      - name: Dump job context
-#        env:
-#          JOB_CONTEXT: ${{ toJson(job) }}
-#        run: echo "$JOB_CONTEXT"
-#      - name: Dump steps context
-#        env:
-#          STEPS_CONTEXT: ${{ toJson(steps) }}
-#        run: echo "$STEPS_CONTEXT"
-#      - name: Dump runner context
-#        env:
-#          RUNNER_CONTEXT: ${{ toJson(runner) }}
-#        run: echo "$RUNNER_CONTEXT"
-#      - name: Dump strategy context
-#        env:
-#          STRATEGY_CONTEXT: ${{ toJson(strategy) }}
-#        run: echo "$STRATEGY_CONTEXT"
-#      - name: Dump matrix context
-#        env:
-#          MATRIX_CONTEXT: ${{ toJson(matrix) }}
-#        run: echo "$MATRIX_CONTEXT"
-
   ## Build image
   build:
     runs-on: arc-runner-set
@@ -49,15 +21,10 @@ jobs:
         with:
           flavor: |
             latest=true
-            prefix=
-            suffix=
           images: |
             ${{ vars.DOCKER_DO_REGISTRY }}/${{github.event.repository.name }}
           tags: |
-            type=sha,format=long
-      - env:
-          META_DATA: ${{ toJson(steps.meta) }}
-        run : echo "$META_DATA"
+            type=sha,format=long,prefix=
 
       - name: Install Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -93,10 +60,34 @@ jobs:
     runs-on: arc-runner-set
     needs: [ build ]
     steps:
-      ## login to docker
+      ## Make sure docker is running
+      - name: Wait for docker
+        run: until docker info > /dev/null 2>&1; do echo "Waiting for Docker..."; sleep 2; done
+
+      - name: Install Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      ## - login to docker registry using doctl
+      #      - uses: docker/login-action@v3
+      #        with:
+      #          registry: ${{ vars.DOCKER_DO_REGISTRY }}
+      #          username: ${{ secrets.DOCKER_DO_REGISTRY_USER }}
+      #          password: ${{ secrets.DOCKER_DO_REGISTRY_PASSWORD }}
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DOCKER_DO_REGISTRY_TOKEN }}
+
+      - name: Login to docker registry using doctl
+        run: doctl registry login --expiry-seconds 600
+
       ## pull the image with current commit SHA for the current project
       ## tag the image as staging
       ## push the staging tag
+      ## deploy to kubernetes
+      - run: docker pull ${{ vars.DOCKER_DO_REGISTRY }}/${{github.event.repository.name }}:${{github.sha}}
+      - run: docker tag ${{ vars.DOCKER_DO_REGISTRY }}/${{github.event.repository.name }}:${{github.sha}} ${{ vars.DOCKER_DO_REGISTRY }}/${{github.event.repository.name }}:staging
+      - run: docker push ${{ vars.DOCKER_DO_REGISTRY }}/${{github.event.repository.name }}:staging
 
       - run: echo "deploy-staging"
 
