@@ -108,7 +108,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-  ## Deploy staging
+  ## Deploy staging v1
   deploy-staging:
     if: github.ref_name == 'staging'
     runs-on: arc-runner-set
