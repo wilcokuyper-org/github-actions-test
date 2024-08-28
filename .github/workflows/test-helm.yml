@@ -1,4 +1,4 @@
-name: Actions test
+name: Actions test HELM
 on:
   push:
     branches:
