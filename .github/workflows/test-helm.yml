@@ -121,7 +121,7 @@ jobs:
         KUBE_TOKEN: ${{ secrets.KUBE_TOKEN_STAGING }}
     steps:
       - name: Deploy to Staging
-        run: sh /entrypoint.sh
+        run: sh /entrypoint-github-agent.sh
         env:
           KUBE_URL: ${{ secrets.KUBE_URL_STAGING }}
           KUBE_TOKEN: ${{ secrets.KUBE_TOKEN_STAGING }}
