@@ -112,7 +112,7 @@ jobs:
   deploy-staging:
     if: github.ref_name == 'staging'
     runs-on: arc-runner-set
-    needs: [ build ]
+    needs: [ create-staging-image ]
     container:
       image: allesonline/helm-laravel:latest
       env:
