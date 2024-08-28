@@ -1,0 +1,313 @@
+## @section Common parameters
+
+## @param name Name for the Kubernetes resources, this should match the client part of your repository name
+name: "website"
+
+## @param name Namespace for the Kubernetes resources, this should match the project part of your repository name
+namespace: "default"
+
+## @param environment.name Environment, possible values: staging, production
+## @param environment.variables Global environment variables for project
+environment:
+  name: "production"
+  variables:
+    ENABLE_INERTIA_SSR: "1"
+    ENABLE_NGINX: "1"
+    ENABLE_PHP_FPM: "1"
+    ARTISAN_CONFIG_CACHE: "1"
+    ARTISAN_ROUTE_CACHE: "0"
+    APP_NAME: "website"
+    APP_ENV: "production"
+    APP_DEBUG: "false"
+    APP_URL: "https://www.scamadviser.com"
+    APP_KEY: "0Ie3R8sw5Z4VlClZM2SKmxZtMADzYywO"
+    BLOG_SOURCE_ID: "1"
+    DB_CONNECTION: "mysql"
+    DB_SCAMADVISER_WEBSITE_NAME: "scamadviser-website"
+    DB_WHITELABEL_MANAGER_NAME: "whitelabel-manager"
+    DB_TAGGER_NAME: "tagger"
+    DB_SITEMAP_NAME: "sitemap"
+    DB_SAFESHOP_WEBSITE_NAME: "safeshop-website"
+    ELASTICSEARCH_INDEX: "scamadviser-blogs-scamadvisercom"
+    SESSION_CONNECTION: "session"
+    SESSION_DRIVER: "redis"
+    CACHE_DRIVER: "redis"
+    THROTTLE_CACHE: "redis"
+    QUEUE_CONNECTION: "redis"
+    LOG_CHANNEL: "errorlog"
+    SENTRY_LARAVEL_DSN: "https://4d4896070daa473f82c6688f611c18f9@o337231.ingest.sentry.io/1405838"
+    SENTRY_BREADCRUMBS_SQL_BINDINGS_ENABLED: "true"
+    ENABLE_META_AB: "false"
+    FILESYSTEM_DISK: "s3"
+    FILESYSTEM_CACHE: "true"
+    SAFESHOP_URL: "https://www.scamadviser.com"
+    FACEBOOK_REDIRECT: "https://www.scamadviser.com/social-login/facebook-callback"
+    GOOGLE_REDIRECT: "https://www.scamadviser.com/social-login/google-callback"
+    MAIL_FROM_NAME: "Scamadviser"
+    MOOSEND_BASE_URI: "https://api.moosend.com/v3/"
+    MOOSEND_LIST_ID: "efeb3662-4915-42c5-b5ce-f983f109fbda"
+    HELPSCOUT_MAILBOX_ID: "250062"
+    TRUSTPROFILE_BASE_URI: "https://dashboard.trustprofile.com"
+    TRUSTPROFILE_SOURCE: "scamadvisor"
+    PHP_INI_MEMORY_LIMIT: "462M"
+    APPLE_APP_ID: "6480509109"
+    APPLE_APP_LINK: "https://apps.apple.com/us/app/scamadviser/id6480509109?itsct=apps_box_link&itscg=30200"
+    GOOGLE_APP_LINK: "https://play.google.com/store/apps/details?id=com.tech.scamadviser"
+
+## @param replicaCount Number of pods to deploy
+replicaCount: 1
+
+## @param imageOverride String to override the image
+imageOverride: "registry.digitalocean.com/scamadviser-registry/website:production"
+
+## @param nodeSelector Nodeselector for Kubernetes
+nodeSelector:
+  doks.digitalocean.com/node-pool: default-pool
+
+## @param containerPort Port on which the application listens
+containerPort: 8080
+
+## @param deployment.resources Resources used for the deployment
+## @param deployment.extraEnv Additional environment variables for deployment
+deployment:
+  annotations:
+    ip-database-updater.scamadviser.cloud/auto-restart: "true"
+  initContainers:
+    - name: website-ip-db-updater
+      image: registry.digitalocean.com/scamadviser-registry/ip-database-updater:latest
+      imagePullPolicy: Always
+      command:
+        - ip-database-downloader
+        - -source-filename=IPV6-COUNTRY-ISP.BIN.zip
+        - -target-path=/db/
+        - -target-filename=IPV6-COUNTRY-ISP.BIN
+      env:
+        - name: STORAGE_BUCKET
+          value: "sa-ip-database-updater-production"
+      envFrom:
+        - secretRef:
+            name: website-ip-database-updater-uploader-credentials # matches the value of "name" + "-" + the secret defined in the "onepassword" key
+      volumeMounts:
+        - name: db-updater
+          mountPath: /db
+  fpmMonitoring:
+    enabled: true
+    threshold: "60"
+    prometheusEndpoint: "http://prometheus-apps-kube-prome-prometheus.monitoring.svc.cluster.local:9090"
+    resources:
+      limits:
+        memory: 80Mi
+        cpu: 30m
+      requests:
+        memory: 32Mi
+        cpu: 10m
+  startupProbe:
+    failureThreshold: 20
+    periodSeconds: 5
+    timeoutSeconds: 2
+    tcpSocket:
+      port: 8080
+  livenessProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 30
+    timeoutSeconds: 15
+    httpGet:
+      path: /kube-health
+      port: 8080
+  readinessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 5
+    tcpSocket:
+      port: 8080
+  resources:
+    limits:
+      memory: 1024Mi
+      cpu: 600m
+    requests:
+      memory: 512Mi
+      cpu: 400m
+  extraEnv: {}
+
+## @param autoscaling.enabled Enable autoscaling
+## @param autoscaling.minReplicas Minimum number of pods
+## @param autoscaling.maxReplicas Maximum number of pods
+## @param autoscaling.metrics Metrics used to autoscale
+autoscaling:
+  enabled: false
+#  minReplicas: 8
+#  maxReplicas: 400
+#  metrics:
+#    - type: Resource
+#      resource:
+#        name: cpu
+#        target:
+#          type: Utilization
+#          averageUtilization: 50
+#    - type: Resource
+#      resource:
+#        name: memory
+#        target:
+#          type: AverageValue
+#          averageValue: 300Mi
+
+keda:
+  enabled: true
+  pollingInterval: 5
+  cooldownPeriod: 300
+  minReplicas: 30
+  maxReplicas: 400
+
+## @param onepassword.secrets 1Password secrets for this deployment
+## @param onepassword.pathOverride String to override the default One Password path
+onepassword:
+  pathOverride: "vaults/Scamadviser Kubernetes Production/items/"
+  secrets:
+    - admitad-api-credentials
+    - aws-s3-credentials
+    - blog-do-spaces-credentials
+    - cloudflare-credentials
+    - ip-database-updater-uploader-credentials
+    - moosend-api-credentials
+    - moosend-smtp-credentials
+    - mysql-scamadviser-website-credentials
+    - mysql-safeshop-website-credentials
+    - mysql-sitemap-credentials
+    - mysql-tagger-credentials
+    - mysql-whitelabel-manager-credentials
+    - redis-credentials
+    - redis-website-credentials
+    - scamadviser-blogs-elasticsearch-credentials
+    - trustprofile-api-credentials
+    - website-facebook-api-credentials
+    - website-google-api-credentials
+    - website-google-maps-credentials
+    - website-google-recaptcha-credentials
+    - website-scamadviser-api-credentials
+
+## @param migrations.enabled Enable automatic Laravel migrations
+## @param migrations.resources Resources used for the migration job
+## @param migrations.extraEnv Additional environment variables for the migration job
+migrations:
+  enabled: false
+  resources:
+    limits:
+      memory: 512Mi
+      cpu: 500m
+    requests:
+      memory: 192Mi
+      cpu: 125m
+  extraEnv: {}
+#    EXAMPLE: "true"
+#    EXAMPLE_2: "true"
+
+## @param jobs Jobs which you can run from the deployment pipeline
+jobs: []
+
+## @param cronjobs Cronjobs which will automatically on the given schedule
+cronjobs: []
+
+## @param ingress.enabled Enable Ingress
+## @param ingress.redirect_www Automatically redirect to www.
+## @param ingress.body_size Maximum request body size
+## @param ingress.default_domain Domain which is used to build URL's
+ingress:
+  enabled: true
+  redirect_www: true
+  body_size: 100m
+  default_domain: "scamadviser.com"
+
+  ## @param ingress.ssl.redirect Automatically redirect to https://
+  ## @param ingress.ssl.issuer Issuer for SSL certificate
+  ssl:
+    redirect: true
+    issuer: "letsencrypt"
+
+  ## @param ingress.hosts Hosts for application, if provided multiple hosts they will be configured as aliasses
+  hosts:
+    - domain: www.scamadviser.com
+      path:
+        - path: /
+          service: website
+        - path: /data/view/reviews
+          service: website-data-reviews
+        - path: /data/vote
+          service: website-data-reviews
+        - path: /sitemaps
+          service: service-sitemap-exporter
+
+## @param scheduler.enabled Enable Laravel Scheduler
+## @param scheduler.resources Resources used for the Laravel Scheduler deployment
+## @param scheduler.extraEnv Additional environment variables for Scheduler deployment
+scheduler:
+  enabled: false
+  resources:
+    limits:
+      memory: 256Mi
+      cpu: 500m
+    requests:
+      memory: 128Mi
+      cpu: 125m
+  extraEnv: {}
+
+## @param horizon.enabled Enable Laravel Horizon
+## @param horizon.whitelist Whitelisted IP's for Laravel Horizon
+## @param horizon.domainOverride Optional domain override instead of default URL
+## @param horizon.resources Resources used for the Laravel Horizon deployment
+## @param horizon.extraEnv Additional environment variables for Laravel Horizon deployment
+horizon:
+  enabled: true
+  annotations:
+    ip-database-updater.scamadviser.cloud/auto-restart: "true"
+  whitelist: 185.107.102.90
+  domainOverride: "website.horizon.production.scamadviser.cloud"
+  initContainers:
+    - name: data-source-networkinfo-ip-db-updater
+      image: registry.digitalocean.com/scamadviser-registry/ip-database-updater:latest
+      imagePullPolicy: Always
+      command:
+        - ip-database-downloader
+        - -source-filename=IPV6-COUNTRY-ISP.BIN.zip
+        - -target-path=/db/
+        - -target-filename=IPV6-COUNTRY-ISP.BIN
+      env:
+        - name: STORAGE_BUCKET
+          value: "sa-ip-database-updater-production"
+      envFrom:
+        - secretRef:
+            name: website-ip-database-updater-uploader-credentials # matches the value of "name" + "-" + the secret defined in the "onepassword" key
+      volumeMounts:
+        - name: db-updater
+          mountPath: /db
+  resources:
+    limits:
+      memory: 768Mi
+      cpu: 1000m
+    requests:
+      memory: 512Mi
+      cpu: 250m
+  extraEnv: {}
+
+## @param mailhog.enabled Enable Mailhog
+## @param mailhog.domainOverride Optional domain override instead of default URL
+## @param mailhog.disk Disksize for storing mails
+## @param mailhog.resources Resources used for the Mailhog deployment
+mailhog:
+  enabled: false
+  domainOverride: ""
+  disk: 1Gi
+  resources:
+    limits:
+      memory: 128Mi
+      cpu: 100m
+    requests:
+      memory: 16Mi
+      cpu: 10m
+
+volumes:
+  - name: db-updater
+    emptyDir: {}
+
+volumeMounts:
+  - name: db-updater
+    mountPath: /db
