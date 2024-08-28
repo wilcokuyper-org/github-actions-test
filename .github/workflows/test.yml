@@ -1,4 +1,4 @@
-name: Actions test
+name: Actions test BASE
 on:
   push:
     branches:
