@@ -116,7 +116,7 @@ jobs:
     container:
       image: allesonline/helm-laravel:latest
       env:
-        HELM_VALUES: helm/staging/default.yaml
+        HELM_VALUES: /github/workspace/helm/staging/default.yaml
         KUBE_URL: ${{ secrets.KUBE_URL_STAGING }}
         KUBE_TOKEN: ${{ secrets.KUBE_TOKEN_STAGING }}
     steps:
@@ -125,7 +125,7 @@ jobs:
         env:
           KUBE_URL: ${{ secrets.KUBE_URL_STAGING }}
           KUBE_TOKEN: ${{ secrets.KUBE_TOKEN_STAGING }}
-          HELM_VALUES: helm/staging/default.yaml
+          HELM_VALUES: /github/workspace/helm/staging/default.yaml
 
   ## Deploy production
   deploy-production:
