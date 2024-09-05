@@ -120,6 +120,7 @@ jobs:
       #   KUBE_URL: ${{ secrets.KUBE_URL_STAGING }}
       #   KUBE_TOKEN: ${{ secrets.KUBE_TOKEN_STAGING }}
     steps:
+      - uses: actions/checkout@v4
       - name: Deploy to Staging
         run: sh /entrypoint-github-agent.sh
         env:
